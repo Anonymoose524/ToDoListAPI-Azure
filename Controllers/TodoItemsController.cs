@@ -15,16 +15,18 @@ namespace TodoApi.Controllers
     public class TodoItemsController : ControllerBase
     {
 
+        public static CloudTable table;
+
         public TodoItemsController()
         {
-
+            table = Utilities.getAuthTable();
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TodoItem>>> GetTodoItems()
         {
             TableQuery<TodoItem> query = new TableQuery<TodoItem>();
-            var segment = await Utilities.getAuthTable().ExecuteQuerySegmentedAsync(query, null);
+            var segment = await table.ExecuteQuerySegmentedAsync(query, null);
             return segment;
 
         }
@@ -32,7 +34,7 @@ namespace TodoApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<TodoItemDTO>> GetTodoItem(long id)
         {
-            TodoItem todoItem = await Utilities.RetriveEntry(Utilities.getAuthTable(), "Test", id.ToString());
+            TodoItem todoItem = await Utilities.RetriveEntry(table, "Test", id.ToString());
 
             return ItemToDTO(todoItem);
         }
@@ -58,7 +60,7 @@ namespace TodoApi.Controllers
                 IdNum = newId
                 };
 
-            await Utilities.CreateEntity(Utilities.getAuthTable(), todoItem);
+            await Utilities.CreateEntity(table, todoItem);
 
             return CreatedAtAction(
                 nameof(GetTodoItem),
@@ -71,7 +73,7 @@ namespace TodoApi.Controllers
         {
             var deleteOperation = TableOperation.Delete(new TableEntity() { PartitionKey = "Test", RowKey = Convert.ToString(id), ETag = "*" });
             try {
-            var deleteResult = await Utilities.getAuthTable().ExecuteAsync(deleteOperation);
+                var deleteResult = await table.ExecuteAsync(deleteOperation);
             }
             catch (StorageException e) when (e.RequestInformation.HttpStatusCode == 404)
             {
